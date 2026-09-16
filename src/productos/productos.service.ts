@@ -14,10 +14,15 @@ export class ProductosService {
     { id: 3, nombre: 'Monitor 24"', precio: 129.99 },
   ];
 
+  /** Devuelve todos los productos del catálogo. */
   findAll(): Producto[] {
     return this.productos;
   }
 
+  /**
+   * Busca un producto por id.
+   * @throws NotFoundException si no existe ningún producto con ese id.
+   */
   findOne(id: number): Producto {
     const producto = this.productos.find((p) => p.id === id);
     if (!producto) {
