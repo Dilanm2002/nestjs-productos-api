@@ -1,0 +1,28 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+export interface Producto {
+  id: number;
+  nombre: string;
+  precio: number;
+}
+
+@Injectable()
+export class ProductosService {
+  private readonly productos: Producto[] = [
+    { id: 1, nombre: 'Teclado mecánico', precio: 45.9 },
+    { id: 2, nombre: 'Mouse inalámbrico', precio: 19.5 },
+    { id: 3, nombre: 'Monitor 24"', precio: 129.99 },
+  ];
+
+  findAll(): Producto[] {
+    return this.productos;
+  }
+
+  findOne(id: number): Producto {
+    const producto = this.productos.find((p) => p.id === id);
+    if (!producto) {
+      throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    }
+    return producto;
+  }
+}
