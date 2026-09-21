@@ -13,7 +13,7 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiOkResponse, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiOkResponse, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { ProductosService } from './productos.service.js';
 import type { Producto } from './producto.entity.js';
 import type { Response } from 'express';
@@ -36,6 +36,7 @@ export class ProductosController {
 
   @Get()
   @ApiOperation({ summary: 'Listar productos disponibles, opcionalmente filtrados por nombre' })
+  @ApiQuery({ name: 'nombre', required: false, description: 'Texto a buscar dentro del nombre (opcional).' })
   @ApiOkResponse({
     description: 'Lista de productos.',
     schema: { type: 'array', items: productoSchema },
