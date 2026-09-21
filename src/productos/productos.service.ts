@@ -1,4 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { CrearProductoDto } from './dto/crear-producto.dto.js';
+import type { ActualizarPrecioDto } from './dto/actualizar-precio.dto.js';
+
+
 
 export interface Producto {
   id: number;
@@ -29,5 +33,41 @@ export class ProductosService {
       throw new NotFoundException(`Producto con id ${id} no encontrado`);
     }
     return producto;
+  }
+
+    /** Crea un producto nuevo y lo agrega al catálogo. */
+  crear(dto: CrearProductoDto): Producto {
+    const nuevoId = Math.max(...this.productos.map((p) => p.id)) + 1;
+    const nuevo: Producto = { id: nuevoId, ...dto };
+    this.productos.push(nuevo);
+    return nuevo;
+  }
+
+    /** Reemplaza por completo un producto existente. */
+  reemplazar(id: number, dto: CrearProductoDto): void {
+    const index = this.productos.findIndex((p) => p.id === id);
+    if (index === -1) {
+      throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    }
+    this.productos[index] = { id, ...dto };
+  }
+
+  /** Actualiza únicamente el precio de un producto existente. */
+  actualizarPrecio(id: number, dto: ActualizarPrecioDto): Producto {
+    const index = this.productos.findIndex((p) => p.id === id);
+    if (index === -1) {
+      throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    }
+    this.productos[index] = { ...this.productos[index], precio: dto.precio };
+    return this.productos[index];
+  }
+
+  /** Elimina un producto existente del catálogo. */
+  eliminar(id: number): void {
+    const index = this.productos.findIndex((p) => p.id === id);
+    if (index === -1) {
+      throw new NotFoundException(`Producto con id ${id} no encontrado`);
+    }
+    this.productos.splice(index, 1);
   }
 }
