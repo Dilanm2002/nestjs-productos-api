@@ -10,11 +10,12 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Res,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiOkResponse, ApiResponse } from '@nestjs/swagger';
 import { ProductosService } from './productos.service.js';
-import type { Producto } from './productos.service.js';
+import type { Producto } from './producto.entity.js';
 import type { Response } from 'express';
 import { CrearProductoDto } from './dto/crear-producto.dto.js';
 import { ActualizarPrecioDto } from './dto/actualizar-precio.dto.js';
@@ -34,13 +35,13 @@ export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar productos disponibles' })
+  @ApiOperation({ summary: 'Listar productos disponibles, opcionalmente filtrados por nombre' })
   @ApiOkResponse({
     description: 'Lista de productos.',
     schema: { type: 'array', items: productoSchema },
   })
-  findAll(): Producto[] {
-    return this.productosService.findAll();
+  findAll(@Query('nombre') nombre?: string): Promise<Producto[]> {
+    return this.productosService.findAll(nombre);
   }
 
   @Get(':id')
@@ -67,8 +68,8 @@ export class ProductosController {
     },
   })
   @ApiResponse({ status: 404, description: 'Producto no encontrado.' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    const producto = this.productosService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const producto = await this.productosService.findOne(id);
     return {
       ...producto,
       _links: {
@@ -81,26 +82,29 @@ export class ProductosController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  crear(@Body() dto: CrearProductoDto, @Res({ passthrough: true }) res: Response): Producto {
-    const nuevo = this.productosService.crear(dto);
+  async crear(
+    @Body() dto: CrearProductoDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Producto> {
+    const nuevo = await this.productosService.crear(dto);
     res.setHeader('Location', `/api/v1/productos/${nuevo.id}`);
     return nuevo;
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  reemplazar(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearProductoDto): void {
-    this.productosService.reemplazar(id, dto);
+  async reemplazar(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearProductoDto): Promise<void> {
+    await this.productosService.reemplazar(id, dto);
   }
 
   @Patch(':id')
-  actualizarPrecio(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarPrecioDto): Producto {
+  actualizarPrecio(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarPrecioDto): Promise<Producto> {
     return this.productosService.actualizarPrecio(id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  eliminar(@Param('id', ParseIntPipe) id: number): void {
-    this.productosService.eliminar(id);
+  async eliminar(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    await this.productosService.eliminar(id);
   }
 }

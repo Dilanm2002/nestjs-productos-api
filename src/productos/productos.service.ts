@@ -1,73 +1,61 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ILike, Repository } from 'typeorm';
+import { Producto } from './producto.entity.js';
 import type { CrearProductoDto } from './dto/crear-producto.dto.js';
 import type { ActualizarPrecioDto } from './dto/actualizar-precio.dto.js';
 
-
-
-export interface Producto {
-  id: number;
-  nombre: string;
-  precio: number;
-}
-
 @Injectable()
 export class ProductosService {
-  private readonly productos: Producto[] = [
-    { id: 1, nombre: 'Teclado mecánico', precio: 45.9 },
-    { id: 2, nombre: 'Mouse inalámbrico', precio: 19.5 },
-    { id: 3, nombre: 'Monitor 24"', precio: 129.99 },
-  ];
+  constructor(
+    @InjectRepository(Producto)
+    private readonly productosRepository: Repository<Producto>,
+  ) {}
 
-  /** Devuelve todos los productos del catálogo. */
-  findAll(): Producto[] {
-    return this.productos;
+  /** Devuelve los productos del catálogo, filtrando por nombre si se indica. */
+  findAll(nombre?: string): Promise<Producto[]> {
+    if (!nombre) return this.productosRepository.find();
+    return this.productosRepository.find({
+      where: { nombre: ILike(`%${nombre}%`) },
+    });
   }
 
   /**
    * Busca un producto por id.
    * @throws NotFoundException si no existe ningún producto con ese id.
    */
-  findOne(id: number): Producto {
-    const producto = this.productos.find((p) => p.id === id);
+  async findOne(id: number): Promise<Producto> {
+    const producto = await this.productosRepository.findOneBy({ id });
     if (!producto) {
       throw new NotFoundException(`Producto con id ${id} no encontrado`);
     }
     return producto;
   }
 
-    /** Crea un producto nuevo y lo agrega al catálogo. */
-  crear(dto: CrearProductoDto): Producto {
-    const nuevoId = Math.max(...this.productos.map((p) => p.id)) + 1;
-    const nuevo: Producto = { id: nuevoId, ...dto };
-    this.productos.push(nuevo);
-    return nuevo;
+  /** Crea un producto nuevo y lo agrega al catálogo. */
+  async crear(dto: CrearProductoDto): Promise<Producto> {
+    const nuevo = this.productosRepository.create(dto);
+    return this.productosRepository.save(nuevo);
   }
 
-    /** Reemplaza por completo un producto existente. */
-  reemplazar(id: number, dto: CrearProductoDto): void {
-    const index = this.productos.findIndex((p) => p.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Producto con id ${id} no encontrado`);
-    }
-    this.productos[index] = { id, ...dto };
+  /** Reemplaza por completo un producto existente. */
+  async reemplazar(id: number, dto: CrearProductoDto): Promise<void> {
+    const producto = await this.findOne(id);
+    await this.productosRepository.save({ ...producto, ...dto });
   }
 
   /** Actualiza únicamente el precio de un producto existente. */
-  actualizarPrecio(id: number, dto: ActualizarPrecioDto): Producto {
-    const index = this.productos.findIndex((p) => p.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Producto con id ${id} no encontrado`);
-    }
-    this.productos[index] = { ...this.productos[index], precio: dto.precio };
-    return this.productos[index];
+  async actualizarPrecio(id: number, dto: ActualizarPrecioDto): Promise<Producto> {
+    const producto = await this.findOne(id);
+    producto.precio = dto.precio;
+    return this.productosRepository.save(producto);
   }
 
   /** Elimina un producto existente del catálogo. */
-  eliminar(id: number): void {
-    const index = this.productos.findIndex((p) => p.id === id);
-    if (index === -1) {
+  async eliminar(id: number): Promise<void> {
+    const resultado = await this.productosRepository.delete(id);
+    if (resultado.affected === 0) {
       throw new NotFoundException(`Producto con id ${id} no encontrado`);
     }
-    this.productos.splice(index, 1);
   }
 }
